@@ -38,6 +38,7 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,4.2vw,2.5re
 .controls{display:flex;flex-wrap:wrap;gap:10px;justify-content:center}
 .btn{font:600 .95rem var(--body);padding:10px 18px;border-radius:999px;border:1px solid var(--brass);cursor:pointer;
   background:transparent;color:var(--paper);display:inline-flex;align-items:center;gap:8px}
+.btn .tx:empty{display:none}
 .btn.primary{background:var(--cinnabar);border-color:var(--cinnabar)}
 .btn[aria-pressed="true"]{background:var(--brass);color:var(--desk);border-color:var(--brass)}
 .btn:focus-visible,.side:focus-visible,.dot:focus-visible{outline:2px solid var(--brass);outline-offset:3px}
@@ -60,11 +61,14 @@ h1{font-family:var(--display);font-weight:700;font-size:clamp(1.7rem,4.2vw,2.5re
   justify-content:center;padding-block:max(8px,env(safe-area-inset-top,0px)) max(8px,env(safe-area-inset-bottom,0px));gap:8px;overflow:hidden}
 .wrap.fs header,.wrap.fs .dots,.wrap.fs .script,.wrap.fs .hint,.wrap.fs .side{display:none}
 .wrap.fs .stage{flex:1 1 auto;min-height:0;align-items:center}
-.wrap.fs .book{height:min(calc(100dvh - 86px),calc((100vw - 24px)*16/9));width:auto;max-width:calc(100vw - 24px)}
-.wrap.fs .controls{gap:6px}
-.wrap.fs .btn{padding:8px 12px;font-size:.85rem}
+.wrap.fs .book{max-width:none}
+.wrap.fs .controls{gap:6px;flex-wrap:nowrap;flex:none}
+.wrap.fs .btn{padding:8px 13px;font-size:1.05rem;min-width:44px;justify-content:center}
+.wrap.fs .tx{display:none}
+.fscount{display:none}
+.wrap.fs .fscount{display:inline-flex;align-items:center;padding:0 4px;color:var(--muted);font-family:var(--display);font-size:1.25rem;font-variant-numeric:tabular-nums}
 .fsbar{position:absolute;top:max(8px,env(safe-area-inset-top,0px));right:14px;display:none;font-family:var(--display);font-size:1.2rem;color:var(--muted);z-index:5}
-.wrap.fs .fsbar{display:block}
+.wrap.fs .fsbar{display:none}
 html.fs-lock,html.fs-lock body{overflow:hidden}
 @media (prefers-reduced-motion:reduce){.leaf{transition:none}}
 </style>
@@ -89,11 +93,12 @@ html.fs-lock,html.fs-lock body{overflow:hidden}
   </div>
 
   <div class="controls">
-    <button class="btn" id="prev2">&#8249; Trang trước</button>
-    <button class="btn primary" id="play">&#9654; Nghe trang này</button>
-    <button class="btn" id="auto" aria-pressed="false">Tự đọc và lật trang</button>
-    <button class="btn" id="next2">Trang sau &#8250;</button>
-    <button class="btn" id="fs" aria-pressed="false">&#x26F6; Toàn màn hình</button>
+    <button class="btn" id="prev2" aria-label="Trang trước"><span class="ic">&#8249;</span><span class="tx">Trang trước</span></button>
+    <button class="btn primary" id="play" aria-label="Nghe trang này"><span class="ic">&#9654;</span><span class="tx">Nghe trang này</span></button>
+    <button class="btn" id="auto" aria-pressed="false" aria-label="Tự đọc và lật trang"><span class="ic">&#8635;</span><span class="tx">Tự đọc và lật trang</span></button>
+    <span class="fscount" id="cur3">1/8</span>
+    <button class="btn" id="next2" aria-label="Trang sau"><span class="tx">Trang sau</span><span class="ic">&#8250;</span></button>
+    <button class="btn" id="fs" aria-pressed="false" aria-label="Toàn màn hình"><span class="ic">&#x26F6;</span><span class="tx">Toàn màn hình</span></button>
   </div>
   <div class="dots" id="dots"></div>
 
@@ -122,7 +127,7 @@ PAGES.forEach((p, i) => {
 function render() {
   const p = PAGES[cur];
   baseImg.src = p.img; baseImg.alt = 'Trang ' + (cur + 1) + ': ' + p.narr;
-  $('cur').textContent = cur + 1; $('cur2').textContent = cur + 1;
+  $('cur').textContent = cur + 1; $('cur2').textContent = cur + 1; $('cur3').textContent = (cur + 1) + '/8';
   $('sTitle').textContent = 'Trang ' + (cur + 1) + ' · ' + p.title;
   $('sNarr').textContent = p.narr;
   $('sLines').innerHTML = '';
@@ -160,7 +165,7 @@ function go(to) {
 }
 function afterTurn() { if (autoOn) playPage(); }
 
-function setPlayLabel(playing) { $('play').innerHTML = playing ? '&#10073;&#10073; Dừng đọc' : '&#9654; Nghe trang này'; }
+function setPlayLabel(playing) { $('play').innerHTML = playing ? '<span class="ic">&#10073;&#10073;</span><span class="tx">Dừng đọc</span>' : '<span class="ic">&#9654;</span><span class="tx">Nghe trang này</span>'; }
 function playPage() {
   audio.src = PAGES[cur].aud; audio.currentTime = 0;
   audio.play().then(() => setPlayLabel(true)).catch(() => setPlayLabel(false));
@@ -181,7 +186,8 @@ function realFs() { return document.fullscreenElement || document.webkitFullscre
 function setFs(on) {
   wrap.classList.toggle('fs', on); document.documentElement.classList.toggle('fs-lock', on);
   $('fs').setAttribute('aria-pressed', on);
-  $('fs').innerHTML = on ? '&#x2715; Thoát toàn màn hình' : '&#x26F6; Toàn màn hình';
+  $('fs').innerHTML = on ? '<span class="ic">&#x2715;</span><span class="tx">Thoát toàn màn hình</span>' : '<span class="ic">&#x26F6;</span><span class="tx">Toàn màn hình</span>';
+  fitBook();
 }
 $('fs').onclick = () => {
   const on = !wrap.classList.contains('fs');
@@ -212,6 +218,22 @@ book.addEventListener('pointerup', e => {
   if (Math.abs(dx) > 40) go(cur + (dx < 0 ? 1 : -1));
   else { const r = book.getBoundingClientRect(); go(cur + (e.clientX > r.left + r.width / 2 ? 1 : -1)); }
 });
+// chế độ toàn màn hình: tính cỡ sách theo đúng khoảng trống còn lại (iPhone có thanh Safari chiếm chỗ)
+function fitBook() {
+  const bk = book;
+  if (!wrap.classList.contains('fs')) { bk.style.width = ''; bk.style.height = ''; return; }
+  const vh = (window.visualViewport ? window.visualViewport.height : window.innerHeight);
+  const vw = (window.visualViewport ? window.visualViewport.width : window.innerWidth);
+  const cs = getComputedStyle(wrap);
+  const pad = parseFloat(cs.paddingTop) + parseFloat(cs.paddingBottom);
+  const ctrl = document.querySelector('.controls').offsetHeight;
+  const availH = vh - pad - ctrl - 10;
+  const w = Math.max(120, Math.min(vw - 16, availH * 9 / 16));
+  bk.style.width = w + 'px'; bk.style.height = (w * 16 / 9) + 'px';
+}
+window.addEventListener('resize', fitBook);
+window.addEventListener('orientationchange', () => setTimeout(fitBook, 300));
+if (window.visualViewport) window.visualViewport.addEventListener('resize', fitBook);
 render();
 </script>
 
